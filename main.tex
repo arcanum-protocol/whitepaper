@@ -1,0 +1,51 @@
+\documentclass{article}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{geometry}
+\usepackage{enumitem}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{subcaption}
+\usepackage{placeins}
+\usepackage{mathtools}
+
+\usepackage{natbib}
+
+%opening
+\title{Target Weight Market Maker: A Solution To IL And LVR}
+\author{Artamonov Artemij \\
+	\texttt{badconfig@edu.misis.ru}}
+
+\date{Initial version: Dec 24, 2023\\Current version: Jun 13, 2025}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Constant Function Automated Market Makers (CF-AMMs) represent a cornerstone of decentralized finance, yet they are constrained by inherent challenges such as Impermanent Loss (IL), Loss-Versus-Rebalancing (LVR), and significant price impact on large trades. This paper introduces the Target-Weight Market Maker (TWMM), a novel decentralized liquidity provision architecture that reconceptualizes these challenges as active asset management problems.
+
+The TWMM operates as a dynamically rebalancing on chain vault, assigning a target share to each constituent asset. Unlike CF-AMMs, it utilizes external oracle prices for trade execution, thereby eliminating the direct correlation between trade size and price impact. The core of the system is a sophisticated, deviation-based fee structure. "Deviation" measures the divergence of an asset's current share from its target. The model imposes a punitive "Deviation Fee" on transactions that increase this divergence, while rewarding those that reduce it with "Cashbacks". This dynamic creates powerful economic incentives for market participants to continuously arbitrage the pool towards its intended equilibrium.
+
+This architecture is further fortified by a multi-layered fee system that mitigates oracle price risk. Ultimately, the TWMM framework offers a capital-efficient and capital-secure alternative to traditional AMMs, that optimizes liquidity provision and minimizes systemic risks.
+\end{abstract}
+
+\tableofcontents
+
+\input{introduction}
+\pagebreak
+\input{pbmm_description}
+\pagebreak
+\input{rebalancing_and_maintance}
+\pagebreak
+\input{pbmm_compared_with_cfmm}
+\pagebreak
+\input{conclusion}
+
+
+
+\bibliographystyle{plain}
+\bibliography{references}
+\end{document}

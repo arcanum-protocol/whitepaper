@@ -1,0 +1,11 @@
+\section{Introduction}
+
+At the time of this paper's writing, on-chain liquidity provision predominantly relies on \textbf{Constant Function Automated Market Makers (CF-AMMs)}. The evolution of CF-AMMs led to the concept of \textbf{concentrated liquidity}, where liquidity is supplied only within a specific price range. This innovation significantly improves capital efficiency and offers enhanced tools for managing the risks associated with Impermanent Loss (IL) and Loss-Versus-Rebalancing (LVR), as comprehensively detailed in research from a16z and Columbia University\cite{AMMandLVR}. 
+
+Despite these advancements, market analysis indicates that even concentrated liquidity AMMs (CL-AMMs) face substantial risks and present considerable management complexity. Statistics from CrocSwap \cite{CrocSwap2023} reveal that only half of liquidity providers in the ETH/USDC trading pair—currently the highest volume pair—experience positive returns. Furthermore, the majority of Profit and Loss (PnL) outcomes are statistically clustered around zero, rendering liquidity provision a challenging and high-risk endeavor.
+
+Alternative solutions are emerging to optimize LVR and IL. These include approaches that combine Request for Quote (RFQ) mechanisms with AMMs, such as those explored by Maverick Protocol \cite{MaverickAMM2023}, or methods that minimize harmful trade impacts through trade batching, as implemented by CoW Swap pools \cite{Cowswap2025}.
+
+Another critical challenge in liquidity provision is the prevalence of paired on-chain liquidity, which restricts volume acquisition and forces Liquidity Providers (LPs) to select optimal trading pairs. Projects like Balancer \cite{Balancer2019} and Paradigm's innovative approach \cite{Orbital2025} (an advanced iteration of Curve Finance's 3-pool) address this by introducing multi-dimensional curves. These innovations enable the creation of pools that facilitate simultaneous trades across a basket of assets. Conceptually, they transition from a simple curve of $f(x,y) = L$ to a more generalized form of $f(\mathbf{X}) = L$, where $\mathbf{X} = [x_1, x_2, \dots, x_i]$ represents a vector of $i$ assets.
+
+The \textbf{Target Weighted Market Maker (TWMM)} system introduces an innovative approach to on-chain market making, designed specifically to address these aforementioned challenges.

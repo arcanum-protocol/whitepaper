@@ -1,0 +1,30 @@
+\section{Rebalancing and Maintenance}
+
+The TWMM manages its assets by defining target shares for its constituent assets and facilitating market-driven trades. These target shares can be adjusted dynamically or remain static over long periods. However, the actual shares of assets within the pool inevitably fluctuate. This fluctuation is driven by two primary factors: changes in the market prices of the assets and changes in their quantities resulting from trading activity.
+
+The system also supports the active maintenance of the asset portfolio, including the addition or removal of assets as needed.
+
+\subsection{Managing Asset weights}
+
+To add a new asset to the pool, a non-zero target share is assigned to it. This action necessitates a proportional reduction in the target shares of existing assets to maintain a total portfolio weight of 100\%. This immediately creates a significant negative deviation (a shortage) for the new asset, especially if its target share is large. This state incentivizes users to supply the new asset to the pool to reduce its deviation. Conversely, the deviation limit mechanism restricts withdrawals or swaps that would further increase the asset's shortage.
+
+Conversely, removing an asset is achieved by setting its target share to zero. This action creates a large positive deviation (a surplus) for that asset, incentivizing users to withdraw it from the pool. Due to the deviation mechanism, the asset can effectively only be withdrawn. Any attempt to deposit more of the asset would be blocked by the deviation limit, as it would exacerbate the surplus.
+
+\subsection{Oracle Price Risk Mitigation}
+Oracle prices are subject to latency and potential inaccuracies, creating a discrepancy between the on-chain price and the true market price. We can term this discrepancy the "oracle error." If this error reaches a sufficient magnitude, it can create an arbitrage opportunity, allowing traders to extract value from the pool.
+
+The TWMM employs a multi-layered defense to mitigate this risk:
+
+\begin{enumerate}
+	\item \textbf{Base Fee:} The base fee ($F_{base}$) is the primary defense. By applying a fee to every trade, the system establishes a profitability threshold for arbitragers. For an arbitrage to be profitable, the oracle error must exceed the base fee.
+	
+	\item \textbf{Secondary Defenses:} In scenarios where the oracle error does exceed the base fee, two additional mechanisms protect the pool from significant capital drain:
+	\begin{itemize}
+		\item \textbf{The Deviation Limit:} This mechanism inherently caps the total amount of an asset that can be swapped in a single direction, limiting the total value that can be extracted via arbitrage.
+		\item \textbf{Deviation Fees:} If the arbitrage trade increases the pool's imbalance, progressively higher deviation fees are applied, rapidly diminishing the profitability of the exploit.
+	\end{itemize}
+\end{enumerate}
+
+These factors work in concert to significantly reduce the net profit of such arbitrage, especially for large-scale exploits. This defense is most effective when the pool is near its target equilibrium. While a large pre-existing deviation could alter the fee dynamics, the cashback system is designed to incentivize continuous rebalancing, keeping the pool close to its target shares and thus ensuring these protective mechanisms remain effective.
+
+Ultimately, the most robust solution to oracle risk is to minimize the error in the first place. Employing advanced techniques, such as MEV-aware oracle designs that provide the most recent price atomically within a trade, is the preferred long-term strategy.
