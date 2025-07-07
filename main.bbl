@@ -1,0 +1,36 @@
+\begin{thebibliography}{1}
+
+\bibitem{CrocSwap2023}
+0xfbifemboy.
+\newblock Impermanent loss and jit liquidity in the uniswap eth/usdc 0.3\%
+  pool.
+\newblock Medium, 2023.
+\newblock Accessed: 2025-07-05.
+
+\bibitem{Cowswap2025}
+Andrea Canidio and Robin Fritsch.
+\newblock Arbitrageurs' profits, lvr, and sandwich attacks: batch trading as an
+  amm design response.
+\newblock {\em arXiv preprint}, 2025.
+
+\bibitem{Balancer2019}
+Fernando Martinelli and Nikolai Mushegian.
+\newblock Balancer whitepaper, 2019.
+
+\bibitem{MaverickAMM2023}
+{Maverick Protocol}.
+\newblock Dynamic distribution amm: Technical introduction.
+\newblock Technical report, Maverick Protocol, 2023.
+
+\bibitem{AMMandLVR}
+Jason Milionis, Ciamac~C. Moallemi, Tim Roughgarden, and Anthony~Lee Zhang.
+\newblock Automated market making and loss-versus-rebalancing.
+\newblock arXiv:2208.06046v5 [q-fin.MF], 2024.
+
+\bibitem{Orbital2025}
+Dave White, Dan Robinson, and Ciamac Moallemi.
+\newblock Orbital: An automated market maker for multi-asset stablecoin pools.
+\newblock Whitepaper, Paradigm, Jun 2025.
+\newblock Accessed: 2025-07-05.
+
+\end{thebibliography}

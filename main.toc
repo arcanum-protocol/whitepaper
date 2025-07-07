@@ -1,0 +1,19 @@
+\contentsline {section}{\numberline {1}Introduction}{2}{}%
+\contentsline {section}{\numberline {2}TWMM Description}{3}{}%
+\contentsline {subsection}{\numberline {2.1}Overview}{3}{}%
+\contentsline {subsection}{\numberline {2.2}Fees}{3}{}%
+\contentsline {subsection}{\numberline {2.3}Deviation: The Core Metric}{3}{}%
+\contentsline {subsection}{\numberline {2.4}Fee Structure}{4}{}%
+\contentsline {subsection}{\numberline {2.5}Fee Distribution}{4}{}%
+\contentsline {subsection}{\numberline {2.6}Deviation Limit}{5}{}%
+\contentsline {subsection}{\numberline {2.7}Deviation Fee}{5}{}%
+\contentsline {subsection}{\numberline {2.8}Cashbacks}{7}{}%
+\contentsline {subsection}{\numberline {2.9}Full TWMM swap invariant}{8}{}%
+\contentsline {subsection}{\numberline {2.10}Liquidity Provision and Removal}{9}{}%
+\contentsline {subsection}{\numberline {2.11}Multi-Asset Liquidity Invariant}{10}{}%
+\contentsline {section}{\numberline {3}Rebalancing and Maintenance}{11}{}%
+\contentsline {subsection}{\numberline {3.1}Managing Asset weights}{11}{}%
+\contentsline {subsection}{\numberline {3.2}Oracle Price Risk Mitigation}{11}{}%
+\contentsline {section}{\numberline {4}TWMM efficiency}{12}{}%
+\contentsline {subsection}{\numberline {4.1}Comparing with CF-AMM}{12}{}%
+\contentsline {subsection}{\numberline {4.2}Impermanent Loss Mitigation}{14}{}%

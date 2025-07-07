@@ -11,10 +11,10 @@ TWMM introduces the concept of assets possessing \textbf{target shares ($S_t$)},
  
  \begin{equation}
  	\label{eq:current_share}
- 	S_c = \frac{Q \cdot P}{P_{lp} \cdot Q_{lp}}
+ 	S_c = \frac{R \cdot P}{ Q_{lp} \cdot P_{lp}}
  \end{equation}
  
- In this equation, the numerator $Q \cdot P$ is the asset's total value (quantity multiplied by price). The denominator, $P_{lp} \cdot Q_{lp}$, represents the TVL of the pool, which is calculated by multiplying the price of the LP token ($P_{lp}$) by the total supply of LP tokens ($Q_{lp}$).
+ In this equation, the numerator $R \cdot P$ is the asset's total value (reserves multiplied by price). The denominator, $R_{lp} \cdot P_{lp}$, represents the TVL of the pool, which is calculated by multiplying the total supply of LP tokens (their reserve $R_{lp}$) by the price of the LP token ($P_{lp}$).
 
 \subsection{Deviation: The Core Metric}
 
@@ -31,10 +31,10 @@ With $n$ representing the total number of assets, the deviation values adhere to
 
 \begin{equation}
 	\label{eq:invariant_deviation}
-	\sum_{i=1}^{n} D_i = 0, \qquad \sum_{i=1}^{n} |D_i| = 2 \cdot R
+	\sum_{i=1}^{n} D_i = 0, \qquad \sum_{i=1}^{n} |D_i| = 2 \cdot I
 \end{equation}
 
-The sum of all deviation values consistently equals zero. Concurrently, the sum of their absolute values defines the total imbalance of the pool, which is equal to twice the pool's aggregate imbalance rate ($R$).
+The sum of all deviation values consistently equals zero. Concurrently, the sum of their absolute values defines the total imbalance of the pool, which is equal to twice the pool's aggregate imbalance rate ($I$).
 
 This quantitative understanding of deviation is crucial for the TWMM's rebalancing mechanisms and fee model, which are elaborated upon in subsequent sections. The precise management of these deviations ensures the stability and efficiency of the system.
 
@@ -49,6 +49,13 @@ Deviation plays a vital role in the fee structure of the TWMM. A fee is levied i
 	
 	\item \textbf{Cashbacks ($F_{cb}$)}: Functioning as the inverse of the depeg fee, cashbacks are rebates that reward users for operations that reduce an asset's imbalance. A cashback is issued when a transaction moves an asset's current share closer to its target share (i.e., when $\lvert D_{new} \rvert < \lvert D_{old} \rvert$ and $\operatorname{sgn}(D_{old}) = \operatorname{sgn}(D_{new})$).
 \end{itemize}
+
+Synthesizing these individual components, the total effective fee ($F_{total}$) for any given operation is defined by the following general formula, which combines the base fee ($F_b$), the deviation fee ($F_{dv}$), and the cashback ($F_{cb}$):
+
+\begin{equation}
+	\label{eq:total_fee_formula}
+	F_{total} = F_b + F_{dv} - F_{cb}
+\end{equation}
 
 The core concept is to calibrate fees based on the resulting change in an asset's deviation following a transaction. It is important to note that the \textbf{TWMM architecture supports various custom functions for calculating the deviation fee}, enabling flexible and adaptable fee structures. Examples of such functions include \textbf{linear} or \textbf{constant} models, in addition to more complex \textbf{curve-based} approaches.
 
@@ -79,15 +86,15 @@ The \textbf{deviation limit} is a control mechanism designed to restrict large-v
 
 An asset's deviation can exceed this specified limit passively as a result of market price fluctuations. When this occurs, transactions that reduce the asset's deviation are permitted to proceed normally, while any transaction that would further increase its absolute deviation is restricted.
 
-Notably, a deviation fee may be waived even for trades that cause an asset's deviation to change sign (e.g., from a surplus to a deficit). The condition for this waiver is that the final absolute deviation must be less than the initial absolute deviation. Such transactions, even if large, are considered beneficial as they decrease the pool's overall imbalance and move the portfolio closer to its target equilibrium state $(R_n < R_o)$ as described in deviation invariant \ref{eq:invariant_deviation}.
+Notably, a deviation fee may be waived even for trades that cause an asset's deviation to change sign (e.g., from a surplus to a deficit). The condition for this waiver is that the final absolute deviation must be less than the initial absolute deviation. Such transactions, even if large, are considered beneficial as they decrease the pool's overall imbalance and move the portfolio closer to its target equilibrium state $(I_{new} < I_{old})$ as described in deviation invariant \ref{eq:invariant_deviation}.
 
 \subsection{Deviation Fee}
 To model the deviation fee, we first define two auxiliary components: the initial deviation before a transaction and the change in deviation resulting from it.
 
-First, the initial deviation ($D_{old}$) represents the asset's deviation state immediately before a swap. Consistent with Equation \ref{eq:deviation}, it is defined using the asset's initial quantity ($Q$), its price ($P$), its target share ($S$), and the pool's Total Value Locked ($Q_{lp} \cdot P_{lp}$):
+First, the initial deviation ($D_{old}$) represents the asset's deviation state immediately before a swap. Consistent with Equation \ref{eq:deviation}, it is defined using the asset's reserve ($R$) in TWMM pool, its price ($P$), its target share ($S_t$), and the pool's Total Value Locked ($R_{lp} \cdot P_{lp}$):
 \begin{equation}
 	\label{eq:deviation_old_function_formula}
-	D_{old} = S - \frac{Q \cdot P}{Q_{lp} \cdot P_{lp}}
+	D_{old} = S_t - \frac{R \cdot P}{R_{lp} \cdot P_{lp}}
 \end{equation}	
 
 Second, the change in deviation, $\Delta D$, is a function of the change in the asset's quantity, $\Delta Q$, resulting from the swap. It is calculated as:
@@ -99,7 +106,7 @@ Second, the change in deviation, $\Delta D$, is a function of the change in the 
 The deviation fee, $F_{dv}$, is modeled as a piecewise linear function. It applies a fee only if a transaction increases the absolute deviation of the asset. The general form, parameterized by a multiplier $K$ and a constant $B$, is:
 \begin{equation}
 	\label{eq:basic_deviation_function}
-	F_d(\Delta D) = \begin{cases} 
+	F_{dv}(\Delta D) = \begin{cases} 
 		K \cdot \lvert D_{old} + \Delta D \rvert + B, & \text{if } \lvert D_{old} + \Delta D \rvert > \lvert D_{old} \rvert, \\
 		0, & \text{otherwhise.}
 	\end{cases}	
@@ -130,7 +137,7 @@ The illustration of this function is:
 To refine the fee model, we first adjust the linear function from Equation \ref{eq:basic_deviation_function}. The previous form results in a fee greater than $B$ as soon as the deviation increases. To ensure the fee is exactly $B$ at the threshold where deviation begins to increase, and grows proportionally to the \textit{increase} in absolute deviation, the function is recalibrated as follows:
 \begin{equation}
 	\label{eq:general_deviation_function}
-	F_{d}(\Delta D) = \begin{cases} 
+	F_{dv}(\Delta D) = \begin{cases} 
 		K \cdot (\lvert D_{old} + \Delta D \rvert - \lvert D_{old} \rvert) + B, & \text{if } \lvert D_{old} + \Delta D \rvert > \lvert D_{old} \rvert, \\
 		0, & \text{otherwhise.} 
 	\end{cases}	
@@ -175,21 +182,20 @@ Furthermore, to ensure stability and efficient value distribution, the cashback 
 	\begin{cases}
 		\displaystyle
 		\begin{aligned}
-			\min\Bigl(&
-			\frac{\lvert D_{\mathrm{old}}\rvert
-				- \bigl\lvert D_{\mathrm{old}}
-				+ \Delta D\,[1 + F_{\mathrm{base}}]\bigr\rvert}
-			{\lvert D_{\mathrm{old}}\rvert}
-			\cdot \frac{C}{\Delta Q},\\
-			&\;C_{\max}
+			\min\Bigl(
+			\frac{\lvert D_{old}\rvert
+				- \bigl\lvert D_{old}
+				+ \Delta D\bigr\rvert}
+			{\lvert D_{old}\rvert}
+			\cdot \frac{C}{\Delta Q},C_{max}
 			\Bigr),
 		\end{aligned}
 		&
 		\begin{aligned}
-			&\text{if }\lvert D_{\mathrm{old}} + \Delta D\rvert
-			< \lvert D_{\mathrm{old}}\rvert\\
-			& \text{and }\operatorname{sgn}(D_{\mathrm{old}})
-			= \operatorname{sgn}(D_{\mathrm{new}}),
+			&\text{if }\lvert D_{old} + \Delta D\rvert
+			< \lvert D_{old}\rvert\\
+			& \text{and }\operatorname{sgn}(D_{old})
+			= \operatorname{sgn}(D_{new}),
 		\end{aligned}
 		\\[3ex]
 		0,
@@ -201,7 +207,7 @@ Furthermore, to ensure stability and efficient value distribution, the cashback 
 
 The calculation of the cashback rate, denoted as $F_{cb}$, requires careful constraint to ensure it properly incentivizes balancing the pool without creating instabilities. The models differ slightly for assets being deposited versus assets being withdrawn.
 
-\subsubsection{Cashback for Input Asset (F\textsubscript{cIn})}
+\subsubsection*{Cashback for Input Asset (F\textsubscript{cIn})}
 
 For an input asset ($\Delta Q_{in} > 0$) that is reducing a deficit ($D_{oIn} < 0$), the cashback must be constrained to prevent the final deviation from overshooting past zero.
 To prevent the cashback from causing the final deviation to cross zero, we introduce a second constraint, $C_z$. This value represents the maximum cashback rate that results in a final deviation of exactly zero.
@@ -231,7 +237,7 @@ Combining these constraints yields the final piecewise function for the input as
 	\end{cases}	
 \end{equation}
 
-\subsubsection{Cashback for Output Asset (F\textsubscript{cOut})}
+\subsubsection*{Cashback for Output Asset (F\textsubscript{cOut})}
 The logic for an output asset that reduces a surplus ($D_{oOut} > 0$) is symmetrical. The cashback is drawn from the collected reserve $C_{out}$ and does not create secondary deviation effects. The general and simplified formulas are analogous to the input asset case:
 \begin{equation}
 	\label{eq:invariant_swap_cashback_out_function}
@@ -343,7 +349,7 @@ Because these operations alter the total supply of LP tokens ($Q_{lp}$), the den
 
 \begin{equation}
 	\label{eq:old_deviation_function_formula_for_lp}
-	D_{old}(\Delta Q, \Delta Q_{lp}) = S - \frac{R \cdot P}{R_{lp} \cdot P_{lp}}
+	D_{old}(\Delta Q, \Delta Q_{lp}) = S_t - \frac{R \cdot P}{R_{lp} \cdot P_{lp}}
 \end{equation}	
 
 \begin{equation}

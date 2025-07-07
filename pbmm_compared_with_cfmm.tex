@@ -1,6 +1,6 @@
 \section{TWMM efficiency}
 \subsection{Comparing with CF-AMM}
-For a Constant Function Automated Market Maker (CF-AMM) with the invariant function $x \cdot y = L$, the amount of output asset $\Delta y$ received for a given input amount $\Delta x$ is calculated based on the initial reserves of the assets.
+For a CF-AMM with the invariant function $x \cdot y = L$, the amount of output asset $\Delta y$ received for a given input amount $\Delta x$ is calculated based on the initial reserves of the assets.
 
 The formula, which accounts for a standard percentage trading fee, is:
 
@@ -26,6 +26,7 @@ In the following charts, the performance is illustrated as follows:
 	\item The \textbf{red line} represents the \textbf{TWMM}.
 	\item The solid \textbf{blue line} represents the standard \textbf{CF-AMM} ($m=1$).
 	\item The dashed \textbf{blue line} represents a \textbf{CF-AMM with tenfold liquidity}, providing a benchmark for capital efficiency ($m=10$).
+\item The \textbf{Blue Zone} highlights a fundamental constraint of the TWMM: the output amount cannot exceed the total available reserve of the output asset ($\Delta Q_{out} \leq R_{out}$).
 \end{itemize}
 \begin{figure}[h!]
 	\centering

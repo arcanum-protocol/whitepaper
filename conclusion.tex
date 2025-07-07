@@ -1,17 +1,8 @@
 \section*{Conclusion}
+The TWMM is a powerful system that successfully challenges current issues with on-chain decentralized liquidity provision. The problem of impermanent loss is addressed through the ability to actively manage asset shares, causing them to rebalance. This creates a new type of on-chain derivative that represents a portfolio strategy. 
 
-In response to the inherent limitations of traditional Constant Function Automated Market Makers---namely Impermanent Loss, price impact, and capital inefficiency---this paper has introduced the \textbf{Trading-Weighted Market Maker (TWMM)}. This novel architecture presents a paradigm shift, treating liquidity provision not as passive price discovery but as a form of active portfolio management.
+The deviation fee model provides strong incentives to keep asset shares aligned with their target values. Because the TWMM supports multiple assets in one pool, it also increases trading volume capture from liquidity provision, which can be further optimized by adjusting asset weights to provide deeper liquidity where needed. 
 
-\subsection*{A Paradigm Shift in Liquidity Management}
+The LVR problem is addressed as the TWMM uses frequently updated oracle prices, and the pool shows significant advantages in capital efficiency over CF-AMMs.
 
-The TWMM re-conceptualizes liquidity provision as \textbf{active portfolio management}. By utilizing oracle-based pricing and establishing \textbf{target shares} for each asset, it decouples trade execution from the pool's liquidity depth, eliminating the price impact typically associated with large trades. The core of the model is its dynamic, deviation-based fee and cashback system. This powerful incentive structure continuously encourages market participants to arbitrage the pool back toward its target equilibrium, creating a self-regulating and stable system.
-
-\subsection*{Superior Capital Efficiency and Risk Mitigation}
-
-The practical results of this architecture are significant. Our analysis demonstrates that the TWMM can achieve a level of trade execution performance comparable to a CF-AMM with \textbf{tenfold the liquidity}, representing a profound improvement in capital efficiency. Furthermore, the integrated mechanisms of deviation limits and dynamic fees provide robust protection against oracle price risk and help mitigate impermanent loss, transforming the LP token into a representation of a managed, risk-adjusted strategy.
-
-\subsection*{Future Directions}
-
-The TWMM framework serves as a robust foundation for a new generation of decentralized financial instruments. Future research may explore more sophisticated non-linear fee functions, deeper integration with MEV-aware oracle solutions, and expanded applications in areas like treasury management and structured products. As the decentralized finance landscape matures, such robust and capital-efficient models will be essential in building the next generation of financial infrastructure. 
-
-% ORACLE dependency here
+The model has a potential bottleneck caused by oracle price inefficiencies. If oracle prices have errors that overcome the collected fee value, an opportunity to drain the pool by extracting arbitrage profit can appear (same mechanic as LVR). This, however, is more complicated if the pool is nearly balanced, as additional volume would also involve deviation fees that grow proportionally with the trade size and would counteract the profitability of exploiting the oracle error. Therefore, effective oracles are key to the profitability of the TWMM.
