@@ -8,8 +8,8 @@
 \contentsline {subsection}{\numberline {2.6}Deviation Limit}{5}{}%
 \contentsline {subsection}{\numberline {2.7}Deviation Fee}{5}{}%
 \contentsline {subsection}{\numberline {2.8}Cashbacks}{7}{}%
-\contentsline {subsection}{\numberline {2.9}Full TWMM swap invariant}{8}{}%
-\contentsline {subsection}{\numberline {2.10}Liquidity Provision and Removal}{9}{}%
+\contentsline {subsection}{\numberline {2.9}Full TWMM swap invariant}{9}{}%
+\contentsline {subsection}{\numberline {2.10}Liquidity Provision and Removal}{10}{}%
 \contentsline {subsection}{\numberline {2.11}Multi-Asset Liquidity Invariant}{10}{}%
 \contentsline {section}{\numberline {3}Rebalancing and Maintenance}{11}{}%
 \contentsline {subsection}{\numberline {3.1}Managing Asset weights}{11}{}%

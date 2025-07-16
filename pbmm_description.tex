@@ -94,20 +94,20 @@ To model the deviation fee, we first define two auxiliary components: the initia
 First, the initial deviation ($D_{old}$) represents the asset's deviation state immediately before a swap. Consistent with Equation \ref{eq:deviation}, it is defined using the asset's reserve ($R$) in TWMM pool, its price ($P$), its target share ($S_t$), and the pool's Total Value Locked ($R_{lp} \cdot P_{lp}$):
 \begin{equation}
 	\label{eq:deviation_old_function_formula}
-	D_{old} = S_t - \frac{R \cdot P}{R_{lp} \cdot P_{lp}}
+	D_{old} = \frac{R \cdot P}{R_{lp} \cdot P_{lp}} - S_t
 \end{equation}	
 
-Second, the change in deviation, $\Delta D$, is a function of the change in the asset's quantity, $\Delta Q$, resulting from the swap. It is calculated as:
+Second, the new deviation, $D_{new}$, is a function of the change in the asset's quantity, $\Delta Q$, resulting from the swap. It is calculated as:
 \begin{equation}
-	\label{eq:deviation_delta_function_formula}
-	\Delta D(\Delta Q) = \frac{ \Delta Q \cdot P}{Q_{lp} \cdot P_{lp}}
+	\label{eq:deviation_new_function_formula}
+	D_{new}(\Delta Q) = \frac{(R + \Delta Q) \cdot P}{R_{lp} \cdot P_{lp}} - S_t
 \end{equation}	
 
 The deviation fee, $F_{dv}$, is modeled as a piecewise linear function. It applies a fee only if a transaction increases the absolute deviation of the asset. The general form, parameterized by a multiplier $K$ and a constant $B$, is:
 \begin{equation}
 	\label{eq:basic_deviation_function}
-	F_{dv}(\Delta D) = \begin{cases} 
-		K \cdot \lvert D_{old} + \Delta D \rvert + B, & \text{if } \lvert D_{old} + \Delta D \rvert > \lvert D_{old} \rvert, \\
+	F_{dv}(\Delta Q) = \begin{cases} 
+		K \cdot \lvert D_{new}(\Delta Q) \rvert + B, & \text{if } \lvert D_{new}(\Delta Q) \rvert > \lvert D_{old} \rvert, \\
 		0, & \text{otherwhise.}
 	\end{cases}	
 \end{equation}
@@ -137,28 +137,56 @@ The illustration of this function is:
 To refine the fee model, we first adjust the linear function from Equation \ref{eq:basic_deviation_function}. The previous form results in a fee greater than $B$ as soon as the deviation increases. To ensure the fee is exactly $B$ at the threshold where deviation begins to increase, and grows proportionally to the \textit{increase} in absolute deviation, the function is recalibrated as follows:
 \begin{equation}
 	\label{eq:general_deviation_function}
-	F_{dv}(\Delta D) = \begin{cases} 
-		K \cdot (\lvert D_{old} + \Delta D \rvert - \lvert D_{old} \rvert) + B, & \text{if } \lvert D_{old} + \Delta D \rvert > \lvert D_{old} \rvert, \\
+	F_{dv}(\Delta Q) = \begin{cases} 
+		K \cdot (\lvert D_{new}(\Delta Q) \rvert - \lvert D_{old} \rvert) + B, & \text{if } \lvert D_{new}(\Delta Q) \rvert > \lvert D_{old} \rvert, \\
 		0, & \text{otherwhise.} 
 	\end{cases}	
 \end{equation}
 
 A further refinement is necessary to account for the recursive impact of the fee itself. The collected fee alters the final input or output amount, which in turn influences the deviation value used to calculate the fee. This self-referential dependency requires an implicitly defined function. We introduce a parameter, deviation fee to cashback ratio ($r_d$), which is related to the fee's allocation toward the cashback fund.
 
-For an asset being added to the pool, the implicit fee function, $F_{dIn}$, which accounts for the portion of the fee retained by the pool, is:
+The deviation fee calculation must also account for the portion of the fee allocated to the cashback reserve. This creates a recursive relationship, as the final fee amount is dependent on the net change in deviation, which is itself affected by the fee being levied. 
+
+This recursive calculation differs for the input and output assets. For an input asset, the portion of the fee designated for cashback is not added to the pool's liquidity, effectively reducing the size of the deposit. For an output asset, this portion is not taken from the user, effectively reducing the size of the withdrawal. This results in different signs in the adjustment term.
+
+The implicitly defined formulas for both cases are:
+\begin{equation}
+	\label{eq:deviation_in_to_cashback_explanation}
+	S_t - \frac{R_{in} + \Delta Q_{in} (1 - r_d \cdot F_{dvIn}(\Delta Q_{in}))}{R_{lp} \cdot P_{lp}}  \cdot P_{in} \iff D_{nIn} - r_{d} \cdot \frac{\Delta Q_{in} \cdot P_{in} }{R_{lp} \cdot P_{lp}} \cdot F_{dvIn}(\Delta Q_{in})
+\end{equation}
+
+\begin{equation}
+	\label{eq:deviation_out_to_cashback_explanation}
+	S_t - \frac{R_{out} + \Delta Q_{out} (1 + r_d \cdot F_{dvIn}(\Delta Q_{in}))}{R_{lp} \cdot P_{lp}}  \cdot P_{in} \iff D_{nOut}  + r_{d} \cdot \frac{\Delta Q_{out} \cdot P_{out} }{R_{lp} \cdot P_{lp}} \cdot F_{dvOut}(\Delta Q_{out})
+\end{equation}
+
+For an asset being added to the pool, the implicit fee function, $F_{dvIn}$, which accounts for the portion of the fee retained by the pool, is:
 \begin{equation}
 	\label{eq:deviation_in_function}
-	F_{dIn}(\Delta D_{in}) = K \cdot (\lvert D_{oIn} + \Delta D_{in} \cdot [1 - r_{d} \cdot F_{dIn}(\Delta D_{in}) ] \rvert - \lvert D_{oIn} \rvert) + B  
+	F_{dvIn}(\Delta Q_{in}) = K \cdot (\lvert D_{nIn} - r_{d} \cdot \frac{\Delta Q_{in} \cdot P_{in} }{R_{lp} \cdot P_{lp}} \cdot F_{dvIn}(\Delta Q_{in}) \rvert - \lvert D_{oIn} \rvert) + B  
 \end{equation}
-Here, the gross change in deviation, $\Delta D_{in}$, is adjusted by a factor dependent on the final fee itself.
 
 Similarly, for an asset being withdrawn from the pool (the "out" asset), a corresponding implicit function, $F_{dOut}$, is required to model the fee's effect on the final withdrawal amount:
 % system with a proper equation of where it's applied?
 % simplification here?
 \begin{equation}
 	\label{eq:deviation_out_function}
-	F_{dOut}(\Delta D_{out}) = K \cdot (\lvert D_{oOut} + \Delta D_{out} \cdot [1 + r_{d} \cdot F_{dOut}(\Delta D_{out})] \rvert - \lvert D_{oOut} \rvert) + B 
+	F_{dvOut}(\Delta Q_{out}) = K \cdot (\lvert D_{nOut}  + r_{d} \cdot \frac{\Delta Q_{out} \cdot P_{out} }{R_{lp} \cdot P_{lp}} \cdot F_{dvOut}(\Delta Q_{out}) \rvert - \lvert D_{oOut} \rvert) + B 
 \end{equation}
+
+
+These deviation formulas can be simplified as follows:
+
+\begin{equation}
+	\label{eq:deviation_in_function_simplified_final}
+	F_{dvIn}(\Delta Q_{in}) = \dfrac{K \cdot D_{nIn}(\Delta Q_{in}) - K \cdot \lvert D_{oIn} \rvert + B}{1 + K \cdot r_d \cdot \dfrac{\Delta Q_{in} \cdot P_{in}}{R_{lp} \cdot P_{lp}}}
+\end{equation}
+
+\begin{equation}
+	\label{eq:deviation_out_function_simplified_final}
+	F_{dvOut}(\Delta Q_{out}) = \dfrac{K \cdot (-D_{nOut}(\Delta Q_{out})) - K \cdot \lvert D_{oOut} \rvert + B}{1 + K \cdot r_d \cdot \dfrac{\Delta Q_{out} \cdot P_{out}}{R_{lp} \cdot P_{lp}}}
+\end{equation}
+
 
 \subsection{Cashbacks}
 \textbf{Cashbacks} are financial incentives provided to users who execute trades that shift an underlying asset's share within the \textbf{TWMM} closer to its designated target share.
@@ -183,16 +211,14 @@ Furthermore, to ensure stability and efficient value distribution, the cashback 
 		\displaystyle
 		\begin{aligned}
 			\min\Bigl(
-			\frac{\lvert D_{old}\rvert
-				- \bigl\lvert D_{old}
-				+ \Delta D\bigr\rvert}
-			{\lvert D_{old}\rvert}
+			\Bigl(1 - \frac{\bigl\lvert D_{new}(\Delta Q) \rvert}
+			{\lvert D_{old}\rvert}\Bigr)
 			\cdot \frac{C}{\Delta Q},C_{max}
 			\Bigr),
 		\end{aligned}
 		&
 		\begin{aligned}
-			&\text{if }\lvert D_{old} + \Delta D\rvert
+			&\text{if }\lvert D_{new}\rvert
 			< \lvert D_{old}\rvert\\
 			& \text{and }\operatorname{sgn}(D_{old})
 			= \operatorname{sgn}(D_{new}),
@@ -213,18 +239,18 @@ For an input asset ($\Delta Q_{in} > 0$) that is reducing a deficit ($D_{oIn} < 
 To prevent the cashback from causing the final deviation to cross zero, we introduce a second constraint, $C_z$. This value represents the maximum cashback rate that results in a final deviation of exactly zero.
 \begin{equation}
 	\label{eq:cashback_constraint for_amount_in}
-	D_{oIn} + \Delta D_{in} \cdot (1 + C_z) = 0 \iff C_z = -\left(\frac{D_{oIn}}{\Delta D_{in}} + 1\right)
+	\frac{(R + \Delta Q \cdot (1 + C_z)) \cdot P}{R_{lp} \cdot P_{lp}} - S_t = 0 \iff C_z = \frac{S_t \cdot R_{lp} \cdot P_{lp}}{\Delta Q \cdot P} - \frac{R}{\Delta Q} + 1
 \end{equation}
 
 \begin{equation}
 	\label{eq:invariant_swap_cashback_in_function}
-	F_{cIn}(\Delta Q_{in}) = \min\left(\frac{\lvert D_{oIn} \rvert - \lvert D_{oIn} + \Delta D_{in} \rvert}{ \lvert D_{oIn} \rvert} \cdot \frac{C_{in}}{\Delta Q_{in}}, C_{max}, C_z\right)
+	F_{cIn}(\Delta Q_{in}) = \min\left(\Bigl(1 - \frac{\lvert D_{nIn}(\Delta Q_{in})  \rvert}{ \lvert D_{oIn} \rvert}\Bigr) \cdot \frac{C_{in}}{\Delta Q_{in}}, C_{max}, C_z\right)
 \end{equation}
 
-Under the specific condition that the transaction reduces the deficit but does not eliminate it (i.e., $D_{oIn} + \Delta D_{in} < 0$), the formula can be simplified:
+Under the specific condition that the transaction reduces the deficit but does not eliminate it (i.e., $\lvert D_{nIn}(\Delta Q_{in}) \rvert < 0 $), the formula can be simplified:
 \begin{equation}
 	\label{eq:invariant_swap_cashback_in_function_simplified}
-	F_{cIn}(\Delta Q_{in}) = \min\left(-\frac{ \Delta D_{in}}{ D_{oIn}} \cdot \frac{C_{in}}{\Delta Q_{in}}, C_{max}, C_z\right)
+	F_{cIn}(\Delta Q_{in}) = \min\left(1 -\frac{D_{nIn}(\Delta Q_{in})}{ D_{oIn}} \cdot \frac{C_{in}}{\Delta Q_{in}}, C_{max}, C_z\right)
 \end{equation}
 
 
@@ -232,7 +258,7 @@ Combining these constraints yields the final piecewise function for the input as
 \begin{equation}
 	\label{eq:swap_invariant_cashback_in_function_final}
 	F_{cIn}(\Delta Q_{in}) = \begin{cases}
-		\begin{aligned} \min\left(-\frac{ \Delta D_{in}}{ D_{oIn}} \cdot \frac{C_{in}}{\Delta Q_{in}}, C_{max}, -\left(\frac{D_{oIn}}{\Delta D_{in}} + 1\right)\right) \end{aligned}, & \text{if } D_{oIn} + \Delta D_{in} < 0, \\
+		\begin{aligned} \min\left(  \Bigl(1- \frac{D_{nIn}(\Delta Q_{in})}{ D_{oIn}} \Bigr) \cdot \frac{C_{in}}{\Delta Q_{in}}, C_{max}, C_z\right) \end{aligned}, & \text{if } D_{nIn}(\Delta Q_{in}) < 0, \\
 		0, & \text{otherwhise.}
 	\end{cases}	
 \end{equation}
@@ -241,20 +267,20 @@ Combining these constraints yields the final piecewise function for the input as
 The logic for an output asset that reduces a surplus ($D_{oOut} > 0$) is symmetrical. The cashback is drawn from the collected reserve $C_{out}$ and does not create secondary deviation effects. The general and simplified formulas are analogous to the input asset case:
 \begin{equation}
 	\label{eq:invariant_swap_cashback_out_function}
-	F_{cOut}(\Delta Q_{out}) = \min\left(\frac{\lvert D_{oOut} \rvert - \lvert D_{oOut} - \Delta D_{out} \rvert}{ \lvert D_{oOut} \rvert} \cdot \frac{C_{out}}{|\Delta Q_{out}|}, C_{max}\right)
+	F_{cOut}(\Delta Q_{out}) = \min\left(1 - \frac{\lvert D_{nOut}(\Delta Q_{out}) \rvert}{ \lvert D_{oOut} \rvert} \cdot \frac{C_{out}}{\Delta Q_{out}}, C_{max}\right)
 \end{equation}
 
-Assuming the transaction reduces but does not eliminate the surplus ($D_{oOut} - \Delta D_{out} > 0$), this simplifies to:
+Assuming the transaction reduces but does not eliminate the surplus ($D_{nOut}(\Delta Q_{out}) > 0$), this simplifies to:
 \begin{equation}
 	\label{eq:invariant_swap_cashback_out_function_simplified}
-	F_{cOut}(\Delta Q_{out}) = \min\left(\frac{ \Delta D_{out}}{ D_{oOut}} \cdot \frac{C_{out}}{|\Delta Q_{out}|}, C_{max}\right)
+	F_{cOut}(\Delta Q_{out}) = \min\left( \Bigl(1-\frac{ D_{nOut}(\Delta Q_{out})}{ D_{oOut}} \Bigr) \cdot \frac{C_{out}}{\Delta Q_{out}}, C_{max}\right)
 \end{equation}
 
 The final function for the output asset cashback rate is therefore given as:
 \begin{equation}
 	\label{eq:swap_invariant_cashback_out_function_final}
 	F_{cOut}(\Delta Q_{out}) = \begin{cases}
-		\begin{aligned} \min\left(\frac{ \Delta D_{out}}{ D_{oOut}} \cdot \frac{C_{out}}{|\Delta Q_{out}|}, C_{max}\right) \end{aligned}, & \text{if } D_{oOut} - \Delta D_{out} > 0, \\
+		\begin{aligned} \min\left( \Bigl(1- \frac{ \Delta D_{nOut}(\Delta Q_{out})}{ D_{oOut}} \Bigr) \cdot \frac{C_{out}}{\Delta Q_{out}}, C_{max}\right) \end{aligned}, & \text{if } D_{nOut}(\Delta Q_{out}) > 0, \\
 		0, & \text{otherwhise.}
 	\end{cases}	
 \end{equation}
@@ -279,26 +305,15 @@ The net directional fee terms, $F_{in}$ and $F_{out}$, are composite values. The
 	F_{\mathrm{in}}(\Delta Q_{\mathrm{in}})
 	=
 	\begin{cases}
-		-\displaystyle
-		\min\Bigl(
-		\frac{\Delta D_{\mathrm{in}}}{D_{o\mathrm{In}}}
-		\cdot \frac{C_{\mathrm{in}}}{\Delta Q_{\mathrm{in}}},
-		\;C_{m},
-		\;-\Bigl(\frac{D_{o\mathrm{In}}}{\Delta D_{\mathrm{in}}} + 1\Bigr)
-		\Bigr),
-		& \text{if } D_{o\mathrm{In}} + \Delta D_{\mathrm{in}} < 0,
+		-F_{cIn}(\Delta Q_{in}),
+		& \text{if } D_{\mathrm{nIn}}(\Delta Q_{in}) < 0,
 		\\[2ex]
 
 		\displaystyle
 		\begin{aligned}
-			K\Bigl(&\bigl\lvert\,D_{o\mathrm{In}}
-			+ \Delta D_{\mathrm{in}}
-			\bigl[1 - r_{d}\,F_{ \mathrm{In} }(\Delta D_{\mathrm{in}})\bigr]
-			\bigr\rvert \\
-			&\quad - \lvert D_{o\mathrm{In}}\rvert\Bigr)
-			+ B,
+			F_{dvIn}(\Delta Q_{in}),
 		\end{aligned}
-		& \text{if } D_{o\mathrm{In}} + \Delta D_{\mathrm{in}}
+		& \text{if } D_{\mathrm{nIn}}(\Delta Q_{in})
 		> \lvert D_{o\mathrm{In}}\rvert,
 		\\[2ex]
 		0,
@@ -314,25 +329,15 @@ Following the same procedure, the net directional fee for the output asset, $F_{
 	F_{\mathrm{out}}(\Delta Q_{\mathrm{out}})
 	=
 	\begin{cases}
-		-\displaystyle\min\Bigl(
-		\frac{\Delta D_{\mathrm{out}}}{D_{o\mathrm{Out}}}
-		\cdot \frac{C_{\mathrm{out}}}{\Delta Q_{\mathrm{out}}},
-		\;C_{\max}
-		\Bigr),
-		& \text{if } D_{o\mathrm{Out}} - \Delta D_{\mathrm{out}} > 0,
+		-F_{cOut}(\Delta Q_{out}),
+		& \text{if } D_{\mathrm{nOut}}(\Delta Q_{out}) > 0,
 		\\[2ex]
 		\displaystyle
 		\begin{aligned}
-			\Bigl(&\bigl\lvert\,D_{o\mathrm{Out}}
-			+ \Delta D_{\mathrm{out}}
-			\bigl[1 + r_{d}\,F_{d\mathrm{Out}}(\Delta D_{\mathrm{out}})\bigr]
-			\bigr\rvert \\
-			&\quad - \lvert D_{o\mathrm{Out}}\rvert\Bigr) \cdot K
-			+ B,
+			F_{dvOut}(\Delta Q_{out}),
 		\end{aligned}
-		& \text{if } D_{o\mathrm{Out}}
-		-\Delta D_{\mathrm{out}}
-		< -\lvert D_{o\mathrm{Out}}\rvert,
+		& \text{if } -D_{\mathrm{nOut}}(\Delta Q_{out})
+		> \lvert D_{o\mathrm{Out}}\rvert,
 		\\[2ex]
 		0,
 		& \text{otherwise.}
@@ -345,7 +350,7 @@ To execute a swap, a user must identify a pair of quantities, $(\Delta Q_{in}, \
 
 Liquidity provision and removal are the operations for depositing assets into the pool to mint LP tokens, or burning LP tokens to withdraw underlying assets. Unlike swaps which exchange one pool asset for another, these operations always involve a transaction between one or more pool assets and the pool's own LP tokens. This allows to apply less deviation impact for big amount of liqudiity provision or removal
 
-Because these operations alter the total supply of LP tokens ($Q_{lp}$), the denominator of the share calculation (i.e., the Total Value Locked) changes during the transaction itself. This requires a redefinition of our deviation formulas (the deviation old formula (\ref{eq:deviation_old_function_formula}) and deviation delta formula (\ref{eq:deviation_delta_function_formula})). For a liquidity operation involving a quantity $\Delta Q$ of a single asset and $\Delta Q_{lp}$ of LP tokens, we define the initial deviation and the change in deviation as follows:
+Because these operations alter the total supply of LP tokens ($Q_{lp}$), the denominator of the share calculation (i.e., the Total Value Locked) changes during the transaction itself. This requires a redefinition of our deviation formulas (the deviation old formula (\ref{eq:deviation_old_function_formula}) and deviation new formula (\ref{eq:deviation_new_function_formula})). For a liquidity operation involving a quantity $\Delta Q$ of a single asset and $\Delta Q_{lp}$ of LP tokens, we define the initial deviation and the change in deviation as follows:
 
 \begin{equation}
 	\label{eq:old_deviation_function_formula_for_lp}
@@ -354,7 +359,7 @@ Because these operations alter the total supply of LP tokens ($Q_{lp}$), the den
 
 \begin{equation}
 	\label{eq:deviation_delta_function_formula_for_lp}
-	\Delta D(\Delta Q, \Delta Q_{lp}) = \frac{\Delta Q \cdot P}{\Delta Q_{lp} \cdot P_{lp}} 
+	D_{new}(\Delta Q, \Delta Q_{lp}) = \frac{(R + \Delta Q) \cdot P}{(R_{lp} + \Delta Q_{lp}) \cdot P_{lp}} 
 \end{equation}	
 
 It is important to note that the LP token itself is not subject to deviation fees or cashbacks. As a derivative representing a share of the entire pool, it is not considered a constituent asset with a target share.
